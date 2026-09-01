@@ -118,17 +118,21 @@ SELECT
 FROM dbo.ReviewAssignment
 WHERE AssignmentId % 4 = 1;
 
--- A known duplicate fixture makes the data-cleanup migration independently testable.
-INSERT dbo.Review (AssignmentId, Score, Comment, IsFinal, CreatedAtUtc, UpdatedAtUtc)
-SELECT
-    AssignmentId,
-    Score,
-    N'Intentional duplicate baseline fixture.',
-    IsFinal,
-    DATEADD(minute, 1, CreatedAtUtc),
-    DATEADD(minute, 1, UpdatedAtUtc)
-FROM dbo.Review
-WHERE AssignmentId = 4;
+-- The tagged baseline and disposable release rehearsal need one known duplicate.
+-- A fresh final installation already has the unique invariant before seeding.
+IF ISNULL((SELECT MAX(VersionNumber) FROM dbo.SchemaVersion), 0) = 1
+BEGIN
+    INSERT dbo.Review (AssignmentId, Score, Comment, IsFinal, CreatedAtUtc, UpdatedAtUtc)
+    SELECT
+        AssignmentId,
+        Score,
+        N'Intentional duplicate baseline fixture.',
+        IsFinal,
+        DATEADD(minute, 1, CreatedAtUtc),
+        DATEADD(minute, 1, UpdatedAtUtc)
+    FROM dbo.Review
+    WHERE AssignmentId = 4;
+END;
 
 UPDATE ra
 SET Status = CASE WHEN r.IsFinal = 1 THEN 'Completed' ELSE 'Draft' END

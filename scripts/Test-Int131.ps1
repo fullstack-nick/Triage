@@ -100,8 +100,10 @@ if (-not $afterRestart.replayed -or $afterRestart.receiptId -ne $beforeRestart.r
 
 $settings = Read-TriageEnvironment
 $webSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-[void](Invoke-WebRequest 'http://127.0.0.1:5070/admin/dev-login.asp' -WebSession $webSession)
-[void](Invoke-WebRequest 'http://127.0.0.1:5070/admin/dev-login.asp' -Method Post -Body @{ password = $settings.TRIAGE_ADMIN_PASSWORD } -WebSession $webSession)
+$loginPage = Invoke-WebRequest 'http://127.0.0.1:5070/admin/dev-login.asp' -WebSession $webSession
+$loginCsrf = [regex]::Match($loginPage.Content, 'name="csrfToken" value="([A-F0-9]{64})"').Groups[1].Value
+if (-not $loginCsrf) { throw 'Could not read the Classic ASP login CSRF token.' }
+[void](Invoke-WebRequest 'http://127.0.0.1:5070/admin/dev-login.asp' -Method Post -Body @{ csrfToken = $loginCsrf; password = $settings.TRIAGE_ADMIN_PASSWORD } -WebSession $webSession)
 $queue = Invoke-WebRequest 'http://127.0.0.1:5070/admin/review-queue.asp?abstractId=9991' -WebSession $webSession
 $csrf = [regex]::Match($queue.Content, 'name="csrfToken" value="([A-F0-9]{64})"').Groups[1].Value
 $assignmentId = [int][regex]::Match($queue.Content, 'name="assignmentId" value="(\d+)"').Groups[1].Value

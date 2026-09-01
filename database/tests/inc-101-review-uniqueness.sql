@@ -23,8 +23,16 @@ IF EXISTS
 )
     THROW 54002, 'Duplicate review rows remain.', 1;
 
-IF NOT EXISTS (SELECT 1 FROM dbo.ReviewDuplicateArchive)
-    THROW 54003, 'Expected quarantined baseline duplicates.', 1;
+IF OBJECT_ID(N'dbo.ReviewDuplicateArchive', N'U') IS NULL
+    THROW 54003, 'Review quarantine table is missing.', 1;
+
+IF EXISTS
+(
+    SELECT 1
+    FROM dbo.ReviewDuplicateArchive archive
+    INNER JOIN dbo.Review activeReview ON activeReview.ReviewId = archive.OriginalReviewId
+)
+    THROW 54007, 'A quarantined review still exists in the active table.', 1;
 
 BEGIN TRANSACTION;
 
