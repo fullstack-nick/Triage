@@ -20,10 +20,12 @@ try {
     if ($startedHere) { & (Join-Path $PSScriptRoot 'Start-Triage.ps1') }
     & (Join-Path $PSScriptRoot 'Smoke-Test.ps1')
 
-    $schemaVersion = Invoke-TriageSqlText -Database 'Triage' -CaptureOutput -Sql 'SET NOCOUNT ON; SELECT MAX(VersionNumber) AS VersionNumber FROM dbo.SchemaVersion;'
-    if (($schemaVersion -join "`n") -match '(?m)^\s*1\s*$') {
+    $schemaVersionOutput = Invoke-TriageSqlText -Database 'Triage' -CaptureOutput -Sql 'SET NOCOUNT ON; SELECT MAX(VersionNumber) AS VersionNumber FROM dbo.SchemaVersion;'
+    $schemaVersion = [int](($schemaVersionOutput | Where-Object { $_ -match '^\s*\d+\s*$' } | Select-Object -Last 1).Trim())
+    if ($schemaVersion -eq 1) {
         & (Join-Path $PSScriptRoot 'Test-LegacyBaseline.ps1')
     }
+    if ($schemaVersion -ge 2) { & (Join-Path $PSScriptRoot 'Test-Inc101.ps1') }
     Write-Host 'Triage local verification passed.' -ForegroundColor Green
 } finally {
     if ($startedHere -and (Test-Path -LiteralPath (Get-TriageLocalPath -ChildPath 'run-state.json'))) {

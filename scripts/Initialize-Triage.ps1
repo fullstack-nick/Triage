@@ -53,8 +53,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Unable to start the local SQL container.' }
     Wait-TriageSql
 
-    foreach ($schemaFile in Get-ChildItem -LiteralPath (Join-Path $root 'database\schema') -Filter '*.sql' | Sort-Object Name) {
-        Invoke-TriageSqlFile -Path $schemaFile.FullName
+    $databaseState = Invoke-TriageSqlText -CaptureOutput -Sql "SET NOCOUNT ON; SELECT CASE WHEN DB_ID(N'Triage') IS NULL OR OBJECT_ID(N'Triage.dbo.SchemaVersion', N'U') IS NULL THEN 'NEW' ELSE 'EXISTING' END AS DatabaseState;"
+    if (($databaseState -join "`n") -match 'NEW') {
+        foreach ($schemaFile in Get-ChildItem -LiteralPath (Join-Path $root 'database\schema') -Filter '*.sql' | Sort-Object Name) {
+            Invoke-TriageSqlFile -Path $schemaFile.FullName
+        }
+    } else {
+        Write-Host 'Existing Triage schema detected; applying forward migrations without replaying the baseline.'
     }
     foreach ($migrationFile in Get-ChildItem -LiteralPath (Join-Path $root 'database\migrations') -Filter '*.sql' -ErrorAction SilentlyContinue | Sort-Object Name) {
         Invoke-TriageSqlFile -Path $migrationFile.FullName
