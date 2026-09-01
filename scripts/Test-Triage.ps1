@@ -33,6 +33,7 @@ try {
     if ($schemaVersion -ge 3) { & (Join-Path $PSScriptRoot 'Test-Perf112.ps1') }
     if ($schemaVersion -ge 4) { & (Join-Path $PSScriptRoot 'Test-Feat124.ps1') }
     if ($schemaVersion -ge 5) { & (Join-Path $PSScriptRoot 'Test-Int131.ps1') }
+    if ($schemaVersion -ge 6) { & (Join-Path $PSScriptRoot 'Test-Rel139.ps1') }
     Write-Host 'Triage local verification passed.' -ForegroundColor Green
 } finally {
     if ($startedHere -and (Test-Path -LiteralPath (Get-TriageLocalPath -ChildPath 'run-state.json'))) {
