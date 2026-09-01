@@ -8,4 +8,6 @@ Private author name and email fields exist in the seeded main database to make l
 
 The reminder boundary treats transport outcome as uncertain. Main SQL owns the logical request and stable key, while the provider independently commits a payload fingerprint and receipt under that key. A timeout after the provider commit is recovered by replaying the same request, never by inventing another key.
 
+Reassignment also treats the browser's candidate list as stale and untrusted. The write procedure locks the predecessor and rechecks administrator role, open state, target activity, conflicts, prior assignment history, and existing children. Closing the predecessor, inserting the linked replacement, and writing the ID-only audit event commit or roll back together.
+
 Generated IIS configuration, credentials, provider state, process IDs, and logs live under `.local/`. Tracked configuration contains only tokens and placeholders.

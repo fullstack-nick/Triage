@@ -145,6 +145,54 @@ VALUES
     (42, 200, '2027-03-03T10:00:00'),
     (84, 201, '2027-03-03T10:05:00');
 
+IF EXISTS (SELECT 1 FROM dbo.SchemaVersion WHERE VersionNumber >= 4)
+BEGIN
+    DECLARE @SeedPredecessorId int = 19990;
+    DECLARE @SeedAbstractId int = (SELECT AbstractId FROM dbo.ReviewAssignment WHERE AssignmentId = @SeedPredecessorId);
+    DECLARE @SeedOldReviewerId int = (SELECT ReviewerUserId FROM dbo.ReviewAssignment WHERE AssignmentId = @SeedPredecessorId);
+
+    UPDATE dbo.ReviewAssignment
+    SET Status = 'Reassigned'
+    WHERE AssignmentId = @SeedPredecessorId;
+
+    INSERT dbo.ReviewAssignment
+    (
+        AbstractId,
+        ReviewerUserId,
+        AssignedAtUtc,
+        DueAtUtc,
+        Status,
+        ReassignedFromAssignmentId
+    )
+    VALUES
+    (
+        @SeedAbstractId,
+        2,
+        '2027-03-06T09:00:00',
+        '2027-03-13T17:00:00',
+        'Assigned',
+        @SeedPredecessorId
+    );
+
+    DECLARE @SeedReplacementId int = SCOPE_IDENTITY();
+    INSERT dbo.AuditEvent (EntityType, EntityId, Action, PerformedByUserId, OccurredAtUtc, Details)
+    VALUES
+    (
+        'ReviewAssignment',
+        @SeedPredecessorId,
+        'ReviewReassigned',
+        1,
+        '2027-03-06T09:00:00',
+        CONCAT
+        (
+            N'{"oldAssignmentId":', @SeedPredecessorId,
+            N',"newAssignmentId":', @SeedReplacementId,
+            N',"oldReviewerUserId":', @SeedOldReviewerId,
+            N',"newReviewerUserId":2}'
+        )
+    );
+END;
+
 COMMIT;
 
 SELECT
@@ -153,4 +201,3 @@ SELECT
     (SELECT COUNT(*) FROM dbo.ReviewAssignment) AS AssignmentCount,
     (SELECT COUNT(*) FROM dbo.Review) AS ReviewRowCount;
 GO
-

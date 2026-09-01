@@ -49,7 +49,7 @@ If Len(filterError) = 0 Then
     If Len(statusFilter) > 0 Then validatedReturnQuery = validatedReturnQuery & "status=" & Server.URLEncode(statusFilter) & "&"
     If pageNumber > 1 Then validatedReturnQuery = validatedReturnQuery & "page=" & pageNumber & "&"
 End If
-Session("QueueReturnQuery") = validatedReturnQuery
+If Request.ServerVariables("REQUEST_METHOD") = "GET" Then Session("QueueReturnQuery") = validatedReturnQuery
 
 If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
     If Not TriageCsrfIsValid() Then
@@ -58,8 +58,60 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
         Response.End
     End If
 
-    If CStr(Request.Form("action")) = "send-reminder" And IsNumeric(Request.Form("assignmentId")) Then
-        Dim assignmentId
+    Dim postAction, assignmentId
+    postAction = CStr(Request.Form("action"))
+
+    If postAction = "begin-reassign" And IsNumeric(Request.Form("assignmentId")) Then
+        assignmentId = CLng(Request.Form("assignmentId"))
+        If assignmentId > 0 Then
+            Session("PendingReassignmentId") = assignmentId
+            Session("AdminFlash") = "Choose an eligible replacement for assignment " & assignmentId & "."
+        End If
+    ElseIf postAction = "cancel-reassign" Then
+        Session("PendingReassignmentId") = ""
+        Session("AdminFlash") = "Reassignment cancelled."
+    ElseIf postAction = "confirm-reassign" And IsNumeric(Request.Form("assignmentId")) And IsNumeric(Request.Form("newReviewerUserId")) Then
+        assignmentId = CLng(Request.Form("assignmentId"))
+        Dim newReviewerUserId, reassignConnection, reassignCommand, reassignRecordset, reassignFailed
+        newReviewerUserId = CLng(Request.Form("newReviewerUserId"))
+        reassignFailed = False
+        Set reassignConnection = Nothing
+        Set reassignCommand = Nothing
+        Set reassignRecordset = Nothing
+
+        Dim pendingReassignmentMatches
+        pendingReassignmentMatches = False
+        If IsNumeric(Session("PendingReassignmentId")) Then pendingReassignmentMatches = (CLng(Session("PendingReassignmentId")) = assignmentId)
+
+        If assignmentId > 0 And newReviewerUserId > 0 And pendingReassignmentMatches Then
+            On Error Resume Next
+            Set reassignConnection = TriageOpenConnection()
+            Set reassignCommand = TriageCommand(reassignConnection, "dbo.usp_ReviewAssignment_Reassign")
+            TriageAddParameter reassignCommand, "@AssignmentId", adInteger, 0, assignmentId
+            TriageAddParameter reassignCommand, "@NewReviewerUserId", adInteger, 0, newReviewerUserId
+            TriageAddParameter reassignCommand, "@PerformedByUserId", adInteger, 0, CLng(Session("AdminUserId"))
+            Set reassignRecordset = reassignCommand.Execute()
+            If Err.Number <> 0 Then
+                reassignFailed = True
+                Err.Clear
+            End If
+            On Error GoTo 0
+
+            If reassignFailed Then
+                Session("AdminFlash") = "The assignment could not be reassigned. Refresh the eligible reviewer list and try again."
+            ElseIf Not reassignRecordset.EOF Then
+                Session("AdminFlash") = "Assignment " & assignmentId & " was preserved and linked to replacement assignment " & CLng(reassignRecordset("NewAssignmentId")) & "."
+            End If
+
+            If Not (reassignRecordset Is Nothing) Then If reassignRecordset.State <> 0 Then reassignRecordset.Close
+            If Not (reassignConnection Is Nothing) Then If reassignConnection.State <> 0 Then reassignConnection.Close
+            Set reassignRecordset = Nothing
+            Set reassignCommand = Nothing
+            Set reassignConnection = Nothing
+        Else
+            Session("AdminFlash") = "The reassignment confirmation expired. Start again from the queue."
+        End If
+    ElseIf postAction = "send-reminder" And IsNumeric(Request.Form("assignmentId")) Then
         assignmentId = CLng(Request.Form("assignmentId"))
 
         If assignmentId > 0 Then
@@ -139,6 +191,36 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
     Response.Redirect "/admin/review-queue.asp" & returnQuery
 End If
 
+Dim pendingReassignmentId, candidateConnection, candidateCommand, candidateRecordset
+Dim historyConnection, historyCommand, historyRecordset
+pendingReassignmentId = 0
+Set candidateConnection = Nothing
+Set candidateCommand = Nothing
+Set candidateRecordset = Nothing
+Set historyConnection = Nothing
+Set historyCommand = Nothing
+Set historyRecordset = Nothing
+
+If IsNumeric(Session("PendingReassignmentId")) Then pendingReassignmentId = CLng(Session("PendingReassignmentId"))
+If pendingReassignmentId > 0 Then
+    On Error Resume Next
+    Set candidateConnection = TriageOpenConnection()
+    Set candidateCommand = TriageCommand(candidateConnection, "dbo.usp_ReviewReassignment_Candidates_Get")
+    TriageAddParameter candidateCommand, "@AssignmentId", adInteger, 0, pendingReassignmentId
+    TriageAddParameter candidateCommand, "@PerformedByUserId", adInteger, 0, CLng(Session("AdminUserId"))
+    TriageAddParameter candidateCommand, "@IncludeAudit", adBoolean, 0, False
+    Set candidateRecordset = candidateCommand.Execute()
+
+    Set historyConnection = TriageOpenConnection()
+    Set historyCommand = TriageCommand(historyConnection, "dbo.usp_ReviewReassignment_Candidates_Get")
+    TriageAddParameter historyCommand, "@AssignmentId", adInteger, 0, pendingReassignmentId
+    TriageAddParameter historyCommand, "@PerformedByUserId", adInteger, 0, CLng(Session("AdminUserId"))
+    TriageAddParameter historyCommand, "@IncludeAudit", adBoolean, 0, True
+    Set historyRecordset = historyCommand.Execute()
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End If
+
 Dim connection, command, recordset
 Set connection = Nothing
 Set command = Nothing
@@ -194,6 +276,47 @@ End If
     <% If Len(filterError) > 0 Then %><div class="error-summary" role="alert" tabindex="-1"><%= TriageHtml(filterError) %></div><% End If %>
     <% If Len(flashMessage) > 0 Then %><div class="status-message" role="status"><%= TriageHtml(flashMessage) %></div><% End If %>
 
+    <% If pendingReassignmentId > 0 And Not (candidateRecordset Is Nothing) Then %>
+    <section class="panel" id="reassignment" aria-labelledby="reassignment-heading" tabindex="-1">
+        <p class="eyebrow">Preserve assignment history</p>
+        <h2 id="reassignment-heading">Reassign assignment <%= pendingReassignmentId %></h2>
+        <% If Not candidateRecordset.EOF Then %>
+        <form method="post" class="reassignment-form">
+            <input type="hidden" name="csrfToken" value="<%= TriageHtml(Session("AdminCsrfToken")) %>">
+            <input type="hidden" name="assignmentId" value="<%= pendingReassignmentId %>">
+            <div class="field">
+                <label for="newReviewerUserId">Eligible replacement reviewer</label>
+                <select id="newReviewerUserId" name="newReviewerUserId" required autofocus>
+                    <option value="">Choose a reviewer</option>
+                    <% Do Until candidateRecordset.EOF %>
+                        <option value="<%= CLng(candidateRecordset("UserId")) %>"><%= TriageHtml(candidateRecordset("DisplayName")) %></option>
+                    <% candidateRecordset.MoveNext : Loop %>
+                </select>
+                <span class="muted">Inactive, conflicted, current, and previously assigned reviewers are excluded by the database.</span>
+            </div>
+            <div class="action-row">
+                <button type="submit" name="action" value="confirm-reassign">Confirm reassignment</button>
+                <button type="submit" name="action" value="cancel-reassign" class="secondary-button" formnovalidate>Cancel</button>
+            </div>
+        </form>
+        <% Else %>
+            <p>No eligible replacement is available, or the assignment is no longer open.</p>
+            <form method="post"><input type="hidden" name="csrfToken" value="<%= TriageHtml(Session("AdminCsrfToken")) %>"><button type="submit" name="action" value="cancel-reassign" class="secondary-button">Close</button></form>
+        <% End If %>
+
+        <% If Not (historyRecordset Is Nothing) Then %>
+            <% If Not historyRecordset.EOF Then %>
+            <h3>Newest audit activity</h3>
+            <ul class="audit-list">
+                <% Do Until historyRecordset.EOF %>
+                    <li><strong><%= TriageHtml(historyRecordset("Action")) %></strong> by <%= TriageHtml(historyRecordset("PerformedBy")) %> at <%= TriageHtml(TriageIsoUtc(historyRecordset("OccurredAtUtc"))) %></li>
+                <% historyRecordset.MoveNext : Loop %>
+            </ul>
+            <% End If %>
+        <% End If %>
+    </section>
+    <% End If %>
+
     <section class="panel" aria-labelledby="filter-heading">
         <h2 id="filter-heading">Filter queue</h2>
         <form method="get" class="filter-grid">
@@ -232,6 +355,12 @@ End If
                                 <input type="hidden" name="assignmentId" value="<%= CLng(recordset("ActionAssignmentId")) %>">
                                 <button type="submit" class="compact">Send reminder</button>
                             </form>
+                            <form method="post" class="inline-form reassign-inline">
+                                <input type="hidden" name="csrfToken" value="<%= TriageHtml(Session("AdminCsrfToken")) %>">
+                                <input type="hidden" name="action" value="begin-reassign">
+                                <input type="hidden" name="assignmentId" value="<%= CLng(recordset("ActionAssignmentId")) %>">
+                                <button type="submit" class="compact secondary-button">Reassign</button>
+                            </form>
                         <% Else %><span class="muted">No open assignment</span><% End If %>
                         </td>
                     </tr>
@@ -268,7 +397,17 @@ End If
 <%
 If Not (recordset Is Nothing) Then If recordset.State <> 0 Then recordset.Close
 If Not (connection Is Nothing) Then If connection.State <> 0 Then connection.Close
+If Not (candidateRecordset Is Nothing) Then If candidateRecordset.State <> 0 Then candidateRecordset.Close
+If Not (candidateConnection Is Nothing) Then If candidateConnection.State <> 0 Then candidateConnection.Close
+If Not (historyRecordset Is Nothing) Then If historyRecordset.State <> 0 Then historyRecordset.Close
+If Not (historyConnection Is Nothing) Then If historyConnection.State <> 0 Then historyConnection.Close
 Set recordset = Nothing
 Set command = Nothing
 Set connection = Nothing
+Set candidateRecordset = Nothing
+Set candidateCommand = Nothing
+Set candidateConnection = Nothing
+Set historyRecordset = Nothing
+Set historyCommand = Nothing
+Set historyConnection = Nothing
 %>

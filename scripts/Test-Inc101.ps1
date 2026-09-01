@@ -20,7 +20,7 @@ $reviewerId = [int](($fixture | Where-Object { $_ -match '^\s*\d+\s*$' } | Selec
 
 $saveSql = "SET NOCOUNT ON; EXEC dbo.usp_Review_Save @AssignmentId=19998, @ReviewerUserId=$reviewerId, @Score=3, @Comment=N'Concurrent invariant test', @IsFinal=0;"
 1..20 | ForEach-Object -Parallel {
-    $using:saveSql | & docker exec -i triage-sql bash -lc '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -b -r 1 -d Triage' *> $null
+    $using:saveSql | & docker exec -i triage-sql bash -lc '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -I -b -r 1 -d Triage' *> $null
     if ($LASTEXITCODE -ne 0) { throw 'Concurrent INC-101 save failed.' }
 } -ThrottleLimit 20
 

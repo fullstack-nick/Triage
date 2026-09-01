@@ -191,7 +191,7 @@ SET STATISTICS XML ON;
 INSERT #Queue EXEC $planCall;
 SET STATISTICS XML OFF;
 "@
-$planOutput = $planSql | & docker exec -i triage-sql bash -lc '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -b -r 1 -d Triage -y 0 -Y 0' 2>&1
+$planOutput = $planSql | & docker exec -i triage-sql bash -lc '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -I -b -r 1 -d Triage -y 0 -Y 0' 2>&1
 if ($LASTEXITCODE -ne 0) { throw "Actual plan command failed: $($planOutput -join [Environment]::NewLine)" }
 $planText = $planOutput -join "`n"
 $planMatch = [regex]::Match($planText, '<ShowPlanXML[\s\S]*?</ShowPlanXML>')

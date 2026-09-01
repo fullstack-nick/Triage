@@ -6,6 +6,7 @@ Const adVarChar = 200
 Const adVarWChar = 202
 Const adLongVarWChar = 203
 Const adDBTimeStamp = 135
+Const adBoolean = 11
 Const adParamInput = 1
 
 Function TriageOpenConnection()

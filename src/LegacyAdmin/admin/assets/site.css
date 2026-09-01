@@ -50,6 +50,12 @@ tbody th { min-width: 250px; font-weight: 650; }
 .id-label { display: block; margin-bottom: 3px; color: var(--teal); font-size: 12px; }
 .assignment-summary { min-width: 360px; color: #425064; }
 .inline-form { margin: 0; }
+.reassign-inline { margin-top: 7px; }
+.reassignment-form { display: grid; max-width: 620px; gap: 18px; }
+.secondary-button { border-color: #718096; color: var(--accent-dark); background: #fff; }
+.secondary-button:hover { color: #fff; background: #425064; }
+.audit-list { margin: 12px 0 0; padding-left: 20px; color: #425064; }
+.audit-list li + li { margin-top: 7px; }
 .pager { display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 18px 22px; border-top: 1px solid var(--line); }
 button.compact { min-height: 34px; padding: 5px 10px; font-size: 13px; white-space: nowrap; }
 .status-message, .error-summary, .notice { margin-top: 20px; padding: 13px 16px; border-radius: 7px; }
