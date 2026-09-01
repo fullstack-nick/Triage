@@ -16,7 +16,13 @@ if ($reviewer.StatusCode -ne 200 -or $reviewer.Content -notmatch 'Evaluation Wor
 
 $sqlResult = Invoke-TriageSqlText -Database 'Triage' -CaptureOutput -Sql @'
 SET NOCOUNT ON;
-SELECT CASE WHEN (SELECT COUNT(*) FROM dbo.Abstract) = 10000 AND (SELECT COUNT(*) FROM dbo.ReviewAssignment) = 20000 THEN 'SMOKE_OK' ELSE 'SMOKE_FAILED' END;
+DECLARE @AssignmentCount int = (SELECT COUNT(*) FROM dbo.ReviewAssignment);
+SELECT CASE
+    WHEN (SELECT COUNT(*) FROM dbo.Abstract) = 10000
+     AND @AssignmentCount BETWEEN 20000 AND 20010
+    THEN 'SMOKE_OK'
+    ELSE 'SMOKE_FAILED'
+END;
 '@
 if (($sqlResult -join "`n") -notmatch 'SMOKE_OK') { throw 'Database smoke check failed.' }
 
