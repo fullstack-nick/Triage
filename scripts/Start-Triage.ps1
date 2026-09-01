@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param()
+param([switch] $TestMode)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -18,6 +18,7 @@ foreach ($port in @(5070, 5071)) {
 
 $settings = Read-TriageEnvironment
 Set-TriageProcessEnvironment -Settings $settings
+if ($TestMode) { [Environment]::SetEnvironmentVariable('TRIAGE_PROVIDER_TEST_MODE', '1', 'Process') }
 $environmentPath = Get-TriageLocalPath -ChildPath 'triage.env'
 
 Push-Location $root

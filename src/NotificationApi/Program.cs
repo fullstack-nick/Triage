@@ -1,10 +1,27 @@
 using System.ComponentModel.DataAnnotations;
-using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://127.0.0.1:5071");
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 16 * 1024);
+
+var databasePath = Environment.GetEnvironmentVariable("TRIAGE_PROVIDER_DB");
+if (string.IsNullOrWhiteSpace(databasePath))
+{
+    throw new InvalidOperationException("TRIAGE_PROVIDER_DB must identify the ignored local receipt database.");
+}
+
+var receiptStore = new ReminderReceiptStore(databasePath);
+receiptStore.Initialize();
+builder.Services.AddSingleton(receiptStore);
 
 var app = builder.Build();
+
+app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+{
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    context.Response.ContentType = "application/problem+json";
+    await context.Response.WriteAsJsonAsync(new { title = "The provider could not process the request." });
+}));
 
 app.Use(async (context, next) =>
 {
@@ -16,10 +33,10 @@ app.Use(async (context, next) =>
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "triage-notification-provider" }));
 
-app.MapPost("/api/review-reminders", (HttpRequest request, ReminderRequest body) =>
+app.MapPost("/api/review-reminders", async (HttpContext context, ReminderRequest body, ReminderReceiptStore store) =>
 {
-    var headerKey = request.Headers["Idempotency-Key"].ToString();
-    if (string.IsNullOrWhiteSpace(headerKey) || headerKey != body.IdempotencyKey)
+    var headerKey = context.Request.Headers["Idempotency-Key"].ToString();
+    if (string.IsNullOrWhiteSpace(headerKey) || !string.Equals(headerKey, body.IdempotencyKey, StringComparison.Ordinal))
     {
         return Results.BadRequest(new { error = "The Idempotency-Key header must match the request body." });
     }
@@ -32,29 +49,47 @@ app.MapPost("/api/review-reminders", (HttpRequest request, ReminderRequest body)
             .GroupBy(item => item.member)
             .ToDictionary(group => group.Key, group => group.Select(item => item.ErrorMessage ?? "Invalid value.").ToArray()));
     }
+    if (body.DueAtUtc.Offset != TimeSpan.Zero)
+    {
+        return Results.BadRequest(new { error = "DueAtUtc must use the UTC offset." });
+    }
 
-    // The tagged legacy baseline intentionally returns a new receipt for every call.
-    // INT-131 replaces this with a durable, idempotent provider receipt store.
-    return Results.Ok(new ReminderResponse(
-        Convert.ToHexString(RandomNumberGenerator.GetBytes(12)).ToLowerInvariant(),
+    var requestedFailure = context.Request.Headers["X-Triage-Test-Failure"].ToString();
+    if (!string.IsNullOrEmpty(requestedFailure))
+    {
+        var testMode = string.Equals(Environment.GetEnvironmentVariable("TRIAGE_PROVIDER_TEST_MODE"), "1", StringComparison.Ordinal);
+        if (!testMode || requestedFailure is not ("after-commit-503" or "after-commit-timeout"))
+        {
+            return Results.BadRequest(new { error = "Failure injection is unavailable." });
+        }
+    }
+
+    var decision = store.Accept(body, requestedFailure);
+    if (decision.Kind == ReceiptDecisionKind.Conflict)
+    {
+        return Results.Conflict(new { error = "The idempotency key is already bound to a different request." });
+    }
+
+    var response = new ReminderResponse(
+        decision.ReceiptId,
         body.IdempotencyKey,
-        false,
-        DateTimeOffset.UtcNow));
+        decision.Kind == ReceiptDecisionKind.Replayed,
+        decision.AcceptedAtUtc);
+
+    if (decision.InjectFailure == "after-commit-503")
+    {
+        return Results.Json(
+            new { error = "Temporary provider failure after receipt commit.", response.ReceiptId, response.IdempotencyKey },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+    if (decision.InjectFailure == "after-commit-timeout")
+    {
+        await Task.Delay(TimeSpan.FromSeconds(4));
+    }
+
+    return Results.Ok(response);
 });
 
 app.Run();
-
-public sealed record ReminderRequest(
-    [property: Range(1, int.MaxValue)] int AssignmentId,
-    [property: Required, StringLength(100, MinimumLength = 8)] string IdempotencyKey,
-    [property: Required, EmailAddress, StringLength(254)] string Recipient,
-    [property: Required, StringLength(160)] string EventName,
-    DateTimeOffset DueAtUtc);
-
-public sealed record ReminderResponse(
-    string ReceiptId,
-    string IdempotencyKey,
-    bool Replayed,
-    DateTimeOffset AcceptedAtUtc);
 
 public partial class Program;

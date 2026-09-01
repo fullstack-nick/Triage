@@ -162,19 +162,10 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
                 Dim markCommand
                 Set markCommand = TriageCommand(postConnection, "dbo.usp_ReviewReminder_MarkResult")
                 TriageAddParameter markCommand, "@NotificationId", adBigInt, 0, notificationId
+                TriageAddParameter markCommand, "@RequestedByUserId", adInteger, 0, CLng(Session("AdminUserId"))
                 TriageAddParameter markCommand, "@RequestStatus", adVarChar, 24, requestStatus
                 TriageAddParameter markCommand, "@ProviderResponse", adVarWChar, 1000, providerResult
                 markCommand.Execute
-
-                Dim auditCommand, auditDetails
-                auditDetails = "{""assignmentId"":" & assignmentId & ",""notificationId"":" & notificationId & "}"
-                Set auditCommand = TriageCommand(postConnection, "dbo.usp_AuditEvent_Create")
-                TriageAddParameter auditCommand, "@EntityType", adVarChar, 40, "Notification"
-                TriageAddParameter auditCommand, "@EntityId", adBigInt, 0, notificationId
-                TriageAddParameter auditCommand, "@Action", adVarChar, 60, "ReminderAttempted"
-                TriageAddParameter auditCommand, "@PerformedByUserId", adInteger, 0, CLng(Session("AdminUserId"))
-                TriageAddParameter auditCommand, "@Details", adVarWChar, 2000, auditDetails
-                auditCommand.Execute
             End If
 
             If reminderRecordset.State <> 0 Then reminderRecordset.Close
@@ -353,7 +344,7 @@ End If
                                 <input type="hidden" name="csrfToken" value="<%= TriageHtml(Session("AdminCsrfToken")) %>">
                                 <input type="hidden" name="action" value="send-reminder">
                                 <input type="hidden" name="assignmentId" value="<%= CLng(recordset("ActionAssignmentId")) %>">
-                                <button type="submit" class="compact">Send reminder</button>
+                                <button type="submit" class="compact">Send or retry reminder</button>
                             </form>
                             <form method="post" class="inline-form reassign-inline">
                                 <input type="hidden" name="csrfToken" value="<%= TriageHtml(Session("AdminCsrfToken")) %>">

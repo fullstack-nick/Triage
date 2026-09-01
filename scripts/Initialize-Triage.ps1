@@ -89,6 +89,11 @@ GO
     & dotnet build (Join-Path $root 'src\NotificationApi\Triage.NotificationApi.csproj') -c Release --no-restore
     if ($LASTEXITCODE -ne 0) { throw 'Notification API build failed.' }
 
+    & dotnet restore (Join-Path $root 'tests\Triage.NotificationApi.Tests\Triage.NotificationApi.Tests.csproj') --use-lock-file
+    if ($LASTEXITCODE -ne 0) { throw 'Notification API test restore failed.' }
+    & dotnet build (Join-Path $root 'tests\Triage.NotificationApi.Tests\Triage.NotificationApi.Tests.csproj') -c Release --no-restore
+    if ($LASTEXITCODE -ne 0) { throw 'Notification API test build failed.' }
+
     $msbuild = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe'
     & $msbuild (Join-Path $root 'src\ReviewerWeb\Triage.Reviewer.Web.vbproj') /restore /p:Configuration=Release /v:minimal
     if ($LASTEXITCODE -ne 0) { throw 'Reviewer Web Forms build failed.' }
