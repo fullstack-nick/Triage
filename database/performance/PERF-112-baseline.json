@@ -1,0 +1,287 @@
+{
+  "capturedAtUtc": "2026-09-01T22:30:03.9372627Z",
+  "mode": "baseline",
+  "sqlImage": "mcr.microsoft.com/mssql/server:2025-CU8-ubuntu-24.04@sha256:4bab24f36c1ecd48e85f7d37df26e6bf301641d84c3fe652f9a0dcc947d512e1",
+  "sqlProductVersion": "17.0.4075.5",
+  "seed": {
+    "abstracts": 10000,
+    "assignments": 20000,
+    "reviewers": 250
+  },
+  "referenceFirstPage": {
+    "checksum": 601941113,
+    "rows": 50
+  },
+  "summaries": [
+    {
+      "scenario": "unfiltered",
+      "warmMedianMilliseconds": 205.407,
+      "warmP95Milliseconds": 225.988,
+      "warmMedianLogicalReads": 205817,
+      "warmMedianCpuMilliseconds": 444
+    },
+    {
+      "scenario": "filtered",
+      "warmMedianMilliseconds": 94.563,
+      "warmP95Milliseconds": 193.163,
+      "warmMedianLogicalReads": 106725,
+      "warmMedianCpuMilliseconds": 97
+    }
+  ],
+  "coldMaximumMilliseconds": 517.862,
+  "measurements": [
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "cold",
+      "iteration": 1,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 362.552,
+      "cpuMilliseconds": 613.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "cold",
+      "iteration": 2,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 428.755,
+      "cpuMilliseconds": 616.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "cold",
+      "iteration": 3,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 517.862,
+      "cpuMilliseconds": 799.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 1,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 212.742,
+      "cpuMilliseconds": 467.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 2,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 210.241,
+      "cpuMilliseconds": 436.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 3,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 201.523,
+      "cpuMilliseconds": 454.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 4,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 205.407,
+      "cpuMilliseconds": 444.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 5,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 201.011,
+      "cpuMilliseconds": 460.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 6,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 225.988,
+      "cpuMilliseconds": 410.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 7,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 206.811,
+      "cpuMilliseconds": 454.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 8,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 193.335,
+      "cpuMilliseconds": 432.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 9,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 209.776,
+      "cpuMilliseconds": 459.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "unfiltered",
+      "temperature": "warm",
+      "iteration": 10,
+      "resultRows": 10000,
+      "firstPageChecksum": 601941113,
+      "elapsedMilliseconds": 193.873,
+      "cpuMilliseconds": 427.0,
+      "logicalReads": 205817
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 1,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 193.163,
+      "cpuMilliseconds": 190.0,
+      "logicalReads": 106725
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 2,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 90.068,
+      "cpuMilliseconds": 92.0,
+      "logicalReads": 106725
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 3,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 98.42,
+      "cpuMilliseconds": 98.0,
+      "logicalReads": 106725
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 4,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 98.226,
+      "cpuMilliseconds": 98.0,
+      "logicalReads": 106725
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 5,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 94.203,
+      "cpuMilliseconds": 92.0,
+      "logicalReads": 106725
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 6,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 90.216,
+      "cpuMilliseconds": 91.0,
+      "logicalReads": 106725
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 7,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 90.037,
+      "cpuMilliseconds": 91.0,
+      "logicalReads": 106725
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 8,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 102.97,
+      "cpuMilliseconds": 104.0,
+      "logicalReads": 106725
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 9,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 98.339,
+      "cpuMilliseconds": 98.0,
+      "logicalReads": 106725
+    },
+    {
+      "mode": "baseline",
+      "scenario": "filtered",
+      "temperature": "warm",
+      "iteration": 10,
+      "resultRows": 2000,
+      "firstPageChecksum": 14307329,
+      "elapsedMilliseconds": 94.563,
+      "cpuMilliseconds": 97.0,
+      "logicalReads": 106725
+    }
+  ]
+}

@@ -8,11 +8,19 @@ Response.Charset = "utf-8"
 TriageSecurityHeaders
 TriageRequireAdmin
 
-Dim abstractFilter, trackFilter, reviewerFilter, statusFilter, filterError, flashMessage
+Dim abstractFilter, trackFilter, reviewerFilter, statusFilter, pageNumber, filterError, flashMessage
 abstractFilter = Trim(CStr(Request.QueryString("abstractId")))
 trackFilter = Trim(CStr(Request.QueryString("track")))
 reviewerFilter = Trim(CStr(Request.QueryString("reviewer")))
 statusFilter = Trim(CStr(Request.QueryString("status")))
+pageNumber = 1
+If Len(Trim(CStr(Request.QueryString("page")))) > 0 Then
+    If IsNumeric(Request.QueryString("page")) Then
+        pageNumber = CLng(Request.QueryString("page"))
+    Else
+        pageNumber = 0
+    End If
+End If
 filterError = ""
 flashMessage = CStr(Session("AdminFlash"))
 Session("AdminFlash") = ""
@@ -27,6 +35,7 @@ End If
 
 If Len(trackFilter) > 80 Then filterError = "Track must be 80 characters or fewer."
 If Len(reviewerFilter) > 120 Then filterError = "Reviewer must be 120 characters or fewer."
+If pageNumber < 1 Or pageNumber > 2000 Then filterError = "Page number is outside the supported range."
 If Len(statusFilter) > 0 And statusFilter <> "Assigned" And statusFilter <> "Draft" And statusFilter <> "Completed" And statusFilter <> "Conflict" Then
     filterError = "Choose a listed review status."
 End If
@@ -38,6 +47,7 @@ If Len(filterError) = 0 Then
     If Len(trackFilter) > 0 Then validatedReturnQuery = validatedReturnQuery & "track=" & Server.URLEncode(trackFilter) & "&"
     If Len(reviewerFilter) > 0 Then validatedReturnQuery = validatedReturnQuery & "reviewer=" & Server.URLEncode(reviewerFilter) & "&"
     If Len(statusFilter) > 0 Then validatedReturnQuery = validatedReturnQuery & "status=" & Server.URLEncode(statusFilter) & "&"
+    If pageNumber > 1 Then validatedReturnQuery = validatedReturnQuery & "page=" & pageNumber & "&"
 End If
 Session("QueueReturnQuery") = validatedReturnQuery
 
@@ -156,6 +166,9 @@ If Len(filterError) = 0 Then
     Else
         TriageAddParameter command, "@ReviewStatus", adVarChar, 20, Null
     End If
+    TriageAddParameter command, "@PageNumber", adInteger, 0, pageNumber
+    TriageAddParameter command, "@PageSize", adInteger, 0, 50
+    TriageAddParameter command, "@AsOfUtc", adDBTimeStamp, 0, Null
     Set recordset = command.Execute()
 End If
 %>
@@ -232,7 +245,21 @@ End If
                 </tbody>
             </table>
         </div>
-        <% If rowCount = 100 And Not recordset.EOF Then %><p class="notice">This tagged baseline preview stops rendering after 100 rows while its legacy query remains intentionally unbounded.</p><% End If %>
+        <nav class="pager" aria-label="Queue pages">
+            <%
+            Dim filterPrefix, previousPage, nextPage
+            filterPrefix = ""
+            If Len(abstractFilter) > 0 Then filterPrefix = filterPrefix & "abstractId=" & Server.URLEncode(abstractFilter) & "&"
+            If Len(trackFilter) > 0 Then filterPrefix = filterPrefix & "track=" & Server.URLEncode(trackFilter) & "&"
+            If Len(reviewerFilter) > 0 Then filterPrefix = filterPrefix & "reviewer=" & Server.URLEncode(reviewerFilter) & "&"
+            If Len(statusFilter) > 0 Then filterPrefix = filterPrefix & "status=" & Server.URLEncode(statusFilter) & "&"
+            previousPage = pageNumber - 1
+            nextPage = pageNumber + 1
+            %>
+            <% If pageNumber > 1 Then %><a class="button secondary" href="?<%= filterPrefix %>page=<%= previousPage %>">Previous page</a><% End If %>
+            <span>Page <strong><%= pageNumber %></strong></span>
+            <% If rowCount = 50 Then %><a class="button secondary" href="?<%= filterPrefix %>page=<%= nextPage %>">Next page</a><% End If %>
+        </nav>
         <% End If %>
     </section>
 </main>
