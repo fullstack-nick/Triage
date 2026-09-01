@@ -9,6 +9,8 @@ $startedHere = -not (Test-Path -LiteralPath (Get-TriageLocalPath -ChildPath 'run
 try {
     & (Join-Path $PSScriptRoot 'Verify-Prerequisites.ps1') -SkipPortCheck
     $root = Get-TriageRoot
+    $settings = Read-TriageEnvironment
+    Set-TriageProcessEnvironment -Settings $settings
     & dotnet restore (Join-Path $root 'src\NotificationApi\Triage.NotificationApi.csproj') --locked-mode
     if ($LASTEXITCODE -ne 0) { throw 'Notification API locked restore failed.' }
     & dotnet build (Join-Path $root 'src\NotificationApi\Triage.NotificationApi.csproj') -c Release --no-restore
@@ -34,6 +36,11 @@ try {
     if ($schemaVersion -ge 4) { & (Join-Path $PSScriptRoot 'Test-Feat124.ps1') }
     if ($schemaVersion -ge 5) { & (Join-Path $PSScriptRoot 'Test-Int131.ps1') }
     if ($schemaVersion -ge 6) { & (Join-Path $PSScriptRoot 'Test-Rel139.ps1') }
+    & (Join-Path $PSScriptRoot 'Test-FinalSecurity.ps1')
+    & dotnet restore (Join-Path $root 'tests\Triage.Web.E2E.Tests\Triage.Web.E2E.Tests.csproj') --locked-mode
+    if ($LASTEXITCODE -ne 0) { throw 'Web E2E test locked restore failed.' }
+    & dotnet test (Join-Path $root 'tests\Triage.Web.E2E.Tests\Triage.Web.E2E.Tests.csproj') -c Release --no-restore
+    if ($LASTEXITCODE -ne 0) { throw 'Microsoft Edge E2E tests failed.' }
     Write-Host 'Triage local verification passed.' -ForegroundColor Green
 } finally {
     if ($startedHere -and (Test-Path -LiteralPath (Get-TriageLocalPath -ChildPath 'run-state.json'))) {

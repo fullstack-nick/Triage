@@ -180,7 +180,8 @@ Partial Public Class Score
 
     Private Function CsrfIsValid() As Boolean
         Dim expected = Convert.ToString(Session("ReviewerCsrfToken"))
-        Return expected.Length = 64 AndAlso String.Equals(expected, CsrfField.Value, StringComparison.Ordinal)
+        Dim supplied = Convert.ToString(Request.Form(CsrfField.UniqueID))
+        Return expected.Length = 64 AndAlso supplied.Length = 64 AndAlso String.Equals(expected, supplied, StringComparison.Ordinal)
     End Function
 
     Private Shared Function ConnectionString() As String

@@ -10,12 +10,30 @@ TriageSecurityHeaders
 Dim errorMessage
 errorMessage = ""
 
+If Len(CStr(Session("AdminLoginCsrfToken"))) <> 64 Then
+    Dim loginTokenConnection, loginTokenCommand, loginTokenRecordset
+    Set loginTokenConnection = TriageOpenConnection()
+    Set loginTokenCommand = TriageCommand(loginTokenConnection, "dbo.usp_DevelopmentSession_Start")
+    TriageAddParameter loginTokenCommand, "@Email", adVarWChar, 254, "admin@aster-vale.example.test"
+    TriageAddParameter loginTokenCommand, "@ExpectedRole", adVarChar, 16, "Admin"
+    Set loginTokenRecordset = loginTokenCommand.Execute()
+    If Not loginTokenRecordset.EOF Then Session("AdminLoginCsrfToken") = CStr(loginTokenRecordset("CsrfToken"))
+    If loginTokenRecordset.State <> 0 Then loginTokenRecordset.Close
+    If loginTokenConnection.State <> 0 Then loginTokenConnection.Close
+    Set loginTokenRecordset = Nothing
+    Set loginTokenCommand = Nothing
+    Set loginTokenConnection = Nothing
+End If
+
 If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
-    Dim expectedPassword, suppliedPassword
+    Dim expectedPassword, suppliedPassword, suppliedLoginCsrf
     expectedPassword = TriageEnvironmentValue("TRIAGE_ADMIN_PASSWORD")
     suppliedPassword = CStr(Request.Form("password"))
+    suppliedLoginCsrf = CStr(Request.Form("csrfToken"))
 
-    If Len(expectedPassword) > 0 And suppliedPassword = expectedPassword Then
+    If Len(suppliedLoginCsrf) <> 64 Or suppliedLoginCsrf <> CStr(Session("AdminLoginCsrfToken")) Then
+        errorMessage = "The request could not be verified. Refresh the page and try again."
+    ElseIf Len(expectedPassword) > 0 And suppliedPassword = expectedPassword Then
         Dim connection, command, recordset
         Set connection = TriageOpenConnection()
         Set command = TriageCommand(connection, "dbo.usp_DevelopmentSession_Start")
@@ -28,6 +46,7 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
             Session("AdminRole") = CStr(recordset("UserRole"))
             Session("AdminDisplayName") = CStr(recordset("DisplayName"))
             Session("AdminCsrfToken") = CStr(recordset("CsrfToken"))
+            Session("AdminLoginCsrfToken") = ""
             recordset.Close
             connection.Close
             Set recordset = Nothing
@@ -43,7 +62,7 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
         Set connection = Nothing
     End If
 
-    errorMessage = "The development password was not accepted. Read the generated local settings file and try again."
+    If Len(errorMessage) = 0 Then errorMessage = "The development password was not accepted. Read the generated local settings file and try again."
 End If
 %>
 <!doctype html>
@@ -51,6 +70,7 @@ End If
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
     <title>Administrator sign in — Triage</title>
     <link rel="stylesheet" href="/admin/assets/site.css">
 </head>
@@ -63,6 +83,7 @@ End If
         <div class="error-summary" role="alert" tabindex="-1"><%= TriageHtml(errorMessage) %></div>
     <% End If %>
     <form method="post" action="dev-login.asp" autocomplete="off">
+        <input type="hidden" name="csrfToken" value="<%= TriageHtml(Session("AdminLoginCsrfToken")) %>">
         <div class="field">
             <label for="username">Username</label>
             <input id="username" value="admin@aster-vale.example.test" readonly>
