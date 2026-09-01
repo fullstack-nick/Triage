@@ -1,0 +1,11 @@
+<site name="Triage" id="1" serverAutoStart="true">
+  <application path="/" applicationPool="IISExpressAppPool">
+    <virtualDirectory path="/" physicalPath="__LEGACY_ADMIN_ROOT__" />
+  </application>
+  <application path="/reviewer" applicationPool="IISExpressAppPool">
+    <virtualDirectory path="/" physicalPath="__REVIEWER_WEB_ROOT__" />
+  </application>
+  <bindings>
+    <binding protocol="http" bindingInformation="127.0.0.1:5070:" />
+  </bindings>
+</site>

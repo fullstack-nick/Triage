@@ -1,0 +1,17 @@
+.local/
+.vs/
+**/bin/
+**/obj/
+TestResults/
+*.user
+*.suo
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.trx
+*.coverage
+*.coveragexml
+database/performance/raw/
+src/ReviewerWeb/_PublishedWebsites/
+
