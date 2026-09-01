@@ -11,3 +11,5 @@ The reminder boundary treats transport outcome as uncertain. Main SQL owns the l
 Reassignment also treats the browser's candidate list as stale and untrusted. The write procedure locks the predecessor and rechecks administrator role, open state, target activity, conflicts, prior assignment history, and existing children. Closing the predecessor, inserting the linked replacement, and writing the ID-only audit event commit or roll back together.
 
 Generated IIS configuration, credentials, provider state, process IDs, and logs live under `.local/`. Tracked configuration contains only tokens and placeholders.
+
+The release boundary is additive and version-gated. Each forward migration requires the exact prior ledger version; each rollback requires the exact active version. Rollback restores older callable contracts where necessary but retains quarantine data and uniqueness indexes, because compatibility recovery must not recreate a known integrity defect. The version-6 smoke procedure checks final cardinalities and invariants and performs a bounded queue read.

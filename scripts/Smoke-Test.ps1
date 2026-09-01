@@ -16,14 +16,21 @@ if ($reviewer.StatusCode -ne 200 -or $reviewer.Content -notmatch 'Evaluation Wor
 
 $sqlResult = Invoke-TriageSqlText -Database 'Triage' -CaptureOutput -Sql @'
 SET NOCOUNT ON;
-DECLARE @AssignmentCount int = (SELECT COUNT(*) FROM dbo.ReviewAssignment);
-SELECT CASE
-    WHEN (SELECT COUNT(*) FROM dbo.Abstract) = 10000
-     AND @AssignmentCount BETWEEN 20000 AND 20010
-    THEN 'SMOKE_OK'
-    ELSE 'SMOKE_FAILED'
+IF ISNULL((SELECT MAX(VersionNumber) FROM dbo.SchemaVersion), 0) >= 6
+BEGIN
+    EXEC dbo.usp_Triage_ReleaseSmokeTest;
+END
+ELSE
+BEGIN
+    DECLARE @AssignmentCount int = (SELECT COUNT(*) FROM dbo.ReviewAssignment);
+    SELECT CASE
+        WHEN (SELECT COUNT(*) FROM dbo.Abstract) = 10000
+         AND @AssignmentCount BETWEEN 20000 AND 20010
+        THEN 'SMOKE_OK'
+        ELSE 'SMOKE_FAILED'
+    END AS SmokeStatus;
 END;
 '@
-if (($sqlResult -join "`n") -notmatch 'SMOKE_OK') { throw 'Database smoke check failed.' }
+if (($sqlResult -join "`n") -notmatch '(REL139_SMOKE_OK|SMOKE_OK)') { throw 'Database smoke check failed.' }
 
 Write-Host 'Triage five-minute smoke checks passed.' -ForegroundColor Green
